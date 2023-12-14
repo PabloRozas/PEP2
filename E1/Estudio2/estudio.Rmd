@@ -1,0 +1,81 @@
+---
+title: "Estudio-con-maca"
+output: html_document
+date: "2023-07-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Ejercicio1 : Para verificar si el proceso de llenado de bolsas de café con 500 gramos está operando correctamente se toman aleatoriamente muestras de tamaño diez cada cuatro horas. Una muestra de bolsas está compuesta por las siguientes observaciones: 502, 501, 497, 491, 496, 501, 502, 500, 489, 490.
+
+¿Está el proceso llenando bolsas conforme lo dice la envoltura? Use un nivel de significancia del 5%.
+```{r}
+library()
+```
+
+Se comprueban las condiciones:
+- Distribución normal
+- Homocedasticidad
+- Son independientes las observaciones
+- La muetsra es mayor a 30 (X)
+
+```{r cars}
+muestra = c(502, 501, 497, 491, 496, 501, 502, 500, 489, 490)
+# significacia = 0.05
+shapiro.test(muestra)
+
+
+```
+
+Para comprobar la dist. normal se realizo la prueba shapiro.test() con la cual se obtuvo un p value de 0.05338, entonces se falla al rechazar la hipotesis nula, lo que quiere decir que la muestra sigue una dist. normal
+
+
+```{r}
+
+
+# Hipotesis nula = media poblacional = 500
+# Hipotesis alternativa = media poblacional es != 500
+significancia = 0.05
+# confianza = 0.95
+t.test(muestra, alternative = "two.sided", conf.level = 0.95, mu = 500)
+
+
+```
+
+Ya que se tiene una muestra menor a 30 y se quiere evaluar la media poblaciona se aplica t-tets, el cual entrega un p-value de 0.09064 lo que indica que se falla al rechazar la hipotesis nula, es decir, la media ´poblacional se aproxima a 500.
+
+
+Ejercicio 2. Se afirma que los automóviles recorren en promedio más de 20000 kilómetros por año pero usted cree que el promedio es en realidad menor. Para probar tal afirmación se pide a una muestra de 100 propietarios de automóviles seleccionada de manera aleatoria que lleven un registro de los kilómetros que recorren.
+
+¿Estaría usted de acuerdo con la afirmación si la muestra aleatoria indicara un promedio de 19500 kilómetros y una desviación estándar de 3900 kilómetros? Utilice un valor P en su conclusión y use una significancia del 3%.
+
+```{r}
+# Hipotesis nula: Promedio >= 20000
+# Hipotesis alternativa < 20000
+significancia = 0.03
+confianza = 1 - significancia
+
+cant_muestra = 100
+media_muestral = 19500
+desvia = 3900
+varianza = desvia^2
+
+
+mu = 20000
+est_estandarZ = (media_muestral - mu) / (desvia/sqrt(cant_muestra))
+est_estandarZ
+
+pnorm(est_estandarZ)
+```
+
+
+
+
+
+
+
+
+
+

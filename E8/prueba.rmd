@@ -1,0 +1,81 @@
+
+```{r}
+set.seed(234)
+datos <- read.csv("EP09 Datos (1).csv", sep = ";", header = TRUE)
+# Obtencion de datos
+tarapaca <- datos %>% filter(region == "Región de Tarapacá")
+
+auto <- tarapaca %>% filter(r14 == "Sí" | r14 == "No")
+
+nunca <- auto  %>% filter(r12b == "Nunca asistió" | r12a == "Nunca asistió")
+
+profesional <- auto  %>% filter(r12b == 
+    "Profesional (carrera de 4 ó más años)"| r12a == 
+    "Profesional (carrera de 4 ó más años)")
+
+# comportamiento de datos por chi cuadrado
+
+
+
+# Crear una nueva columna 'NivelEducativo' que indique si 
+# es técnico o profesional
+auto <- auto %>%
+  mutate(NivelEducativo = case_when(
+    r12b == "Nunca asistió" | r12a == "Nunca asistió" ~ "Nunca asistió",
+    r12b == "Profesional (carrera de 4 ó más años)" |
+      r12a == "Profesional (carrera de 4 ó más años)" ~ "Profesional",
+    TRUE ~ NA_character_  # Excluimos otras respuestas
+  )) %>%
+  filter(!is.na(NivelEducativo))  # Filtramos las NA
+
+# Ahora creamos la tabla de contingencia
+tabla <- with(auto, table(Auto = r14, Educacion = NivelEducativo))
+
+# Realizamos la prueba de chi-cuadrado
+test_chi <- chisq.test(tabla)
+
+# Ver los resultados
+print(test_chi)
+
+
+library(ggplot2)
+#ggplot(auto, aes(x = NivelEducativo, fill = r14)) +
+#  geom_bar(position = "fill") +
+#  labs(y = "Proporción", x = "Nivel Educativo", fill = "Posee Auto") +
+#  theme_minimal()
+
+#print(addmargins(table(auto$r14, auto$NivelEducativo)))
+```
+
+```{r}
+# Generamos las muestras reales
+set.seed(234)
+
+tratamiento <- rbinom(100, 1, 0.5)
+control <- rbinom(100, 1, 0.5)
+
+# Calculamos la diferencia de proporciones observada
+diferencia <- mean(tratamiento) - mean(control)
+
+# Generamos las muestras aleatorias
+n <- 100
+simulaciones <- replicate(10000, {
+  tratamiento_sim <- rbinom(n, 1, 0.5)
+  control_sim <- rbinom(n, 1, 0.5)
+  diferencia_sim <- mean(tratamiento_sim) - mean(control_sim)
+})
+
+# Calculamos la distribución de la diferencia de proporciones
+hist(simulaciones, breaks = 20)
+
+# Calculamos el valor crítico
+alpha <- 0.05
+valor_critico <- qnorm(1 - alpha)
+
+# Comparamos la diferencia de proporciones observada
+if (diferencia > valor_critico) {
+  print("Rechazamos la hipótesis nula")
+} else {
+  print("No rechazamos la hipótesis nula")
+}
+```

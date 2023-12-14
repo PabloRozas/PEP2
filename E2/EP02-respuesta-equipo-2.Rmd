@@ -1,0 +1,384 @@
+---
+title: "EP02-respuesta-equipo-2"
+author: "Franco Salvo, Roberto Galleguillos, Bastian Guerrero"
+date: "2023-09-08"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+libraries <- c("ggpubr", "PASWR2")
+
+lapply(libraries, function(package) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+  } else {
+    library(package, character.only = TRUE)
+  }
+})
+
+
+```
+
+## Preparación de los datos
+
+La base de datos de ejemplo se llama **EP02 Datos.csv**, la cual
+corresponde a datos del Comité Olímpico de una gran potencia del
+atletismo el cual se encuentra estudiando el programa de entrenamiento
+de varones para la competencia de 100 metros planos, condensado en 4
+variables:
+
+-   `id`: Identificador único para cada atleta
+-   `Raza`: Raza del atleta(Categórica: Blanca, Negra, Oriental)
+-   `Previo`: Mejor tiempo registrado por el atleta antes de ingresar al programa 
+              de entrenamiento (numérica, en segundos)
+-   `Posterior`: Mejor tiempo registrado por el atleta durante los primeros 6 meses 
+                del programa de entrenamiento (numérica, en segundos)
+
+La base de datos se encuentra en formato .csv (español) por ende se
+procede a cargarla usando la función `read.csv2`, debido a que esta
+optimizada para leer un csv en formato español.
+
+```{r code}
+
+data <- read.csv2("EP02 Datos.csv", header = TRUE)
+head(data)
+
+
+```
+
+Además se corrobora que los tipos de variables de las columnas del
+dataframe correspondan al tipo que se debe utilizar
+
+```{r type}
+
+variables_type <- sapply(data, class)
+print(variables_type)
+
+
+```
+
+## Analisis exploratorio de los datos
+
+Se considera conveniente realizar un análisis exploratorio de los datos,
+el cual se realiza haciendo uso de la función `eda` de la librería
+`PASWR2`, la cual se realizará, para cada una de las variables en orden
+de aparición de los gráficos. 1. Blanca 2. Negra 3. Oriental
+
+```{r eda}
+categorical_race = levels(as.factor(data$Raza))
+categorical_race
+
+for (category in categorical_race) {
+  filtered_data = data[data$Raza == category,]
+  eda(filtered_data$Previo)
+}
+
+
+```
+
+---
+
+## Preguntas a Reponder:
+
+#### **1. El Comité Olímpico cree que el mejor tiempo medio de los atletas de raza oriental antes de ingresar al programa de entrenamiento era inferior a 19,8 segundos. ¿Soportan los datos esta afirmación?**
+
+En primera instancia, se realiza la formulación de hipótesis.
+
+Forma declarativa:
+
+- H0: El tiempo promedio de los atletas de raza oriental corresponde a
+    19.8 Seg
+- Ha: El tiempo promedio de los atletas de raza oriental es menor a
+    19.8 Seg
+
+Forma matemáticamente:
+
+-   H0: µ = µ0, es decir µ = 19.8 Seg
+-   Ha: µ \< µ0, es decir µ \< 19.8 Seg.
+
+Se procede a la selección de una prueba estadística que permita contrastar la hipótesis, para ello se debe filtrar los datos y estimar el tamaño de la muestra, y así
+decidir si es posible realizar un z-test, ya que para poder aplicarlo se
+deben cumplir las siguientes condiciones:
+
+-   El tamaño de la muestra debe ser mayor a 30.
+-   Las observaciones deben ser independientes.
+-   La población de donde se obtuvo la muestra sigue aproximadamente una distribucion normal.
+
+```{r Pregunta 1}
+
+
+oriental_athletes <- data[data$Raza == "Oriental",]
+
+size_of_oriental_sample <- length(oriental_athletes$Id)
+
+size_of_oriental_sample
+
+```
+
+En base el tamaño de 27 de la muestra, no es posible realizar un z-test,
+por lo tanto se realizará un t-test. El cual requiere que se cumplan las
+siguientes condiciones:
+
+- Las observaciones son independientes entre
+sí. 
+
+- Las observaciones provienen de una distribución cercana a la
+normal.
+
+Debido a que la muestra fue seleccionada al azar, se puede asumir que
+son independientes. Por lo tanto, se procede a realizar
+el análisis de normalidad.
+
+```{r Pregunta 1 shapiro}
+
+  shapiro.test(oriental_athletes$Previo)
+
+```
+
+Debido a que el valor de shapiro.test correspondiente a
+0.932, considerablemente superior a nuestro nivel de significancia (α =
+0.05), por lo que se puede suponer con relativa confianza que la
+población de donde proviene la muestra sigue una distribución normal,
+pero además se hará un grafico qq-plot para verificar la distribución de
+la muestra, haciendo uso de las bandas.
+
+```{r qqplot pregunta 1, echo=FALSE}
+graphic <- ggqqplot(filtered_data, x = "Previo", color = "yellow")
+print(graphic)
+```
+
+Dado que se ha verificado las condiciones anteriormente
+descritas para realizar un t-test, se procede a realizar el cálculo del
+estadístico. Haciendo uso de un nivel de significancia de 0.05.
+
+```{r Pregunta 1 - test de hipotesis}
+
+alpha <- 0.05
+null_value =19.8
+t.test(filtered_data$Previo, alternative = "less", mu = null_value, conf.level = 1- alpha)
+
+```
+
+
+En base al análisis del p-valor (0.1666), que es mayor que el nivel de significancia (0.05),
+no encontramos evidencia estadística para rechazar nuestra hipótesis nula. Por lo tanto, 
+los datos no respaldan la afirmación del Comité Olímpico de que el mejor tiempo promedio 
+de los atletas de raza oriental antes de ingresar al programa de entrenamiento es inferior a 19.8 segundos.
+
+---
+
+#### **2. ¿Sugieren los datos que la mejor marca de los atletas de raza negra se reduce en promedio más de 1,9 segundos tras el entrenamiento?**
+
+En primera instancia, se realiza la formulación de hipótesis.
+
+Forma declarativa:
+
+- H0: El tiempo promedio de los atletas de raza negra se reduce en
+    promedio 1.9 Seg.
+- Ha: El tiempo promedio de los atletas de raza negra se reduce en
+    promedio más de 1.9 Seg.
+
+Forma matemáticamente:
+
+- H0: µA - µB = 1.9, es decir µdif = 1.9 Seg.
+- Ha: µA - µB \> 1.9, es decir µdif \> 1.9 Seg.
+
+Donde:
+
+µA = Promedio mejor tiempo registrado previo al entrenamiento
+
+µB = Promedio mejor tiempo registrado posterior al entrenamiento
+
+Ahora, se selecciona una prueba estadística que permita contrastar la hipótesis, por lo que se propone verificar las condiciones requeridas para
+realizar un z-test, estimando el tamaño de la muestra. 
+
+```{r}
+black_athletes <- data[data$Raza == "Negra",]
+
+n_black_sample <- length(black_athletes$Id)
+
+n_black_sample
+
+```
+
+Debido a que la muestra es de tamaño 28 no es posible realizar un z-test, 
+por lo que se realizará un t-test, para lo cual se asume que las
+observaciones son independientes entre sí, ya que fueron elegidas al
+azar. Por lo tanto se realiza el analisis de normalidad, el cual nos
+permite aseverar a través de un test de shapiro wilk, que los datos si
+provienen de una población que distribuye de manera normal, lo cual nos
+permite realizar test parametricos.
+
+```{r Pregunta 2 analisis condiciones - 1}
+
+difference <- black_athletes$Previo - black_athletes$Posterior
+difference
+
+normalidad <- shapiro.test(difference)
+normalidad
+
+```
+
+Dado que se ha verificado las condiciones anteriormente
+descritas para realizar un t-test, se procede a realizar el cálculo del
+estadístico. Haciendo uso de un nivel de significancia de 0.05.
+
+```{r Pregunta 2 analisis condiciones - 2}
+
+null_value <- 1.9
+
+alpha <- 0.05
+
+prueba_1 <- t.test(difference,
+                   alternative = "greater",
+                   mu = null_value,
+                   conf.level = 1 - alpha)
+
+prueba_1
+
+```
+
+
+En base al análisis del p-valor obtenido, que es mayor que el nivel de significancia (0.05),
+no encontramos evidencia estadística para rechazar nuestra hipótesis nula. Por lo tanto,
+no podemos afirmar que, en promedio, los atletas de raza negra reduzcan su mejor marca 
+en más de 1.9 segundos después del entrenamiento.
+
+---
+
+#### **3. ¿Es posible afirmar que, en promedio, los atletas de raza negra superan a los de raza oriental por 2 segundos después del entrenamiento?**
+
+En primera instancia, se realiza la formulación de hipótesis.
+
+Forma declarativa:
+
+- H0: El tiempo promedio de los atletas de raza negra supera por 2 segundos el de los atletas orientales. 
+
+- Ha: El tiempo promedio de los atletas de raza negra no supera por 2 segundos el de los atletas orientales.
+
+Forma matemática:
+
+- H0: µA - µB = 2, es decir µdif = 2 Seg 
+
+- Ha: µA - µ0 != 2, es decir µdif != 2 Seg.
+
+Donde:
+
+µA = Promedio mejor tiempo posterior al entrenamiento de los atletas de raza oriental.
+ 
+µB = Promedio mejor tiempo posterior al entrenamiento de los atletas de raza negra.
+
+Puesto que se trata de dos muestras independientes, se verificará si se cumplen las condiciones para realizar una t-test. Para ello, se procede a verificar si cada una de las muestras distribuye de manera cercana a la normal. Haciendo uso de qqplot, en conjunto de un test de
+shapiro-wilk.
+
+```{r Pregunta 3 analisis condiciones - 1}
+
+shapiro.test(oriental_athletes$Posterior)
+
+oriental_qq <- ggqqplot(oriental_athletes, x = "Posterior", color = "yellow")
+
+print(oriental_qq)
+
+
+
+
+
+shapiro.test(black_athletes$Posterior)
+black_qq <- ggqqplot(black_athletes, x = "Posterior", color = "black")
+print(black_qq)
+
+
+
+```
+
+Es posible notar que algunos de los datos de los atletas de raza negra, se alejan de las bandas del gráfico cuantil cuantil, lo cual se rectificará posteriormente usando un nivel de significancia más estricto al momento de concluir.
+
+Una vez visto que se cumplen las condiciones, se procede a realizar el t-test para dos muestras independientes.
+
+```{r Pregunta 3 analisis condiciones - 2}
+
+alpha = 0.025
+
+test <- t.test(x = oriental_athletes$Posterior,
+                 y = black_athletes$Posterior,
+                 paired = FALSE,
+                 alternative = "two.sided",
+                 mu = 2,
+                 conf.level = 1-alpha,
+                 var.equal = TRUE
+)
+
+
+test
+```
+
+Basándonos en el análisis del p-valor (0.6535), el cual es significativamente mayor
+que el nivel de significancia (0.025), no encontramos evidencia estadística para 
+rechazar nuestra hipótesis nula. Por lo tanto, no podemos afirmar que, en promedio, 
+los atletas de raza negra superen a los de raza oriental por 2 segundos después del entrenamiento.
+
+---
+
+#### **4. ¿Será cierto que hay menos atletas de raza oriental que, en promedio, redujeron sus marcas en al menos 5,5 segundos que atletas de raza blanca que lo hicieron en al menos 3 segundos?**
+
+```{r}
+oriental_athletes = data[data$Raza == "Oriental",]  #Se filtra  raza oritental
+
+white_athletes = data[data$Raza == "Blanca",]   #Se filtra raza blanca
+
+#---------------------------
+
+oriental_difference = oriental_athletes$Previo - oriental_athletes$Posterior #Diferencia de la raza oriental
+
+n_oriental = length(oriental_athletes$Previo)  #Total de raza oriental
+#----------------------------
+
+white_difference = white_athletes$Previo - white_athletes$Posterior #Diferencia de la raza blanca
+
+n_white = length(white_athletes$Previo) #Total de raza blanca
+
+#---------------------------
+
+
+oriental_success = length(oriental_difference[oriental_difference >= 5.5])
+oriental_success
+
+
+white_success = length(white_difference[white_difference >= 3])
+white_success
+
+```
+
+Como se puede apreciar, las condiciones necesarias para aplicar el método de Wald no se satisfacen en este caso, dado que se tiene 1 dato de exito para la raza oriental, no cumpliendo con la condición de Exito-Fracaso. Por lo tanto, se ha decidido utilizar el método Wilson en su lugar para llevar a cabo el análisis de los datos.
+
+Postulacion de hipotesis
+
+Forma declarativa:
+
+- H0: No hay diferencia significativa entre la cantidad promedio de segundos en los que los atletas de raza oriental redujeron sus marcas (≥ 5,5 segundos) y los atletas de raza blanca que lo hicieron (≥ 3 segundos).
+
+- Ha: Hay una diferencia significativa entre la cantidad promedio de segundos en los que son menor los atletas de raza oriental que redujeron sus marcas (≥ 5,5 segundos), que la cantidad de los atletas de raza blanca que lo hicieron (≥ 3 segundos).
+
+Forma matemática:
+
+- H0: µ_oriental - µ_blanca = 0
+
+- Ha: µ_oriental \< µ_blanca
+
+```{r}
+success <- c(oriental_success, white_success)
+n <- c(n_oriental, n_white)
+
+prop.test(success, n= n, alternative = "greater" , conf.level = 0.95)
+```
+
+En la función `prop.test(...)`, es apropiado utilizar "greater" (mayor) en la prueba estadística para comparar las proporciones de atletas de raza oriental y blanca que cumplen con las condiciones dadas. Esto se debe a que la hipótesis alternativa (Ha) sugiere que la cantidad de atletas de raza oriental que redujeron sus marcas en al menos 5.5 segundos es menor que la cantidad de atletas de raza blanca que lo hicieron en al menos 3 segundos.
+
+Finalmente, Dado que se obtuvo un valor p de 0.9988, el cual es bastante alto en comparación a nuestro nivel de significancia, por ende sugiere que no hay evidencia estadística significativa para rechazar la hipótesis nula (H0) en favor de la hipótesis alternativa (Ha). No se puede afirmar que haya menos atletas de raza oriental que cumplan con las condiciones en comparación con los atletas de raza blanca.
+

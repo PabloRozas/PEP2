@@ -1,0 +1,12 @@
+---
+title: "PEP2"
+output: html_document
+date: "2023-12-14"
+---
+
+Se leen el archivo de los datos
+
+```{r}
+
+```
+

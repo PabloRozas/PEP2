@@ -1,0 +1,107 @@
+Se leen los datos y se cargan las librerias a usar
+```{r}
+datos <- read.csv2("EP08 Datos CASEN 2017.csv", header = TRUE, 
+                   sep = ";", encoding = "latin1")
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+```
+
+Se usara el metodo monte carlo para calcular que dos variables categoricas dicotomicas tienen la misma proporcion
+    
+```{r}
+# Se filtran los datos por la region de tarapaca
+datos_tarapaca <- datos %>% filter(region == "Región de Tarapacá")
+# Se dejan las columnas de r14 y r12b
+datos_tarapaca <- datos_tarapaca %>% select(r14, r12b)
+# Mostrar las distintas respuestas de la pregunta r14
+unique(datos_tarapaca$r14)
+# Mostrar las distintas respuestas de la pregunta r12b
+unique(datos_tarapaca$r12b)
+# Filtrar los datos paar los que tengan solo respuestas de
+# Sí y No en la pregunta r14
+datos_tarapaca <- datos_tarapaca %>% filter(r14 == "Sí" | r14 == "No")
+# Filtrar los datos paar los que tengan solo respuestas
+# de "Profesional (carrera de 4 ó más años)" o "Nunca asistió"
+# en la pregunta r12b
+datos_tarapaca <- datos_tarapaca %>% filter(r12b == "Profesional (carrera de 4 ó más años)" | r12b == "Nunca asistió")
+
+# Se calcula la proporcion de los que respondieron Sí en la pregunta r14
+proporcion_r14 <- datos_tarapaca %>% filter(r14 == "Sí") %>% nrow() / datos_tarapaca %>% nrow()
+# Se calcula la proporcion de los que respondieron Profesional (carrera de 4 ó más años) en la pregunta r12b
+proporcion_r12b <- datos_tarapaca %>% filter(r12b == "Profesional (carrera de 4 ó más años)") %>% nrow() / datos_tarapaca %>% nrow()
+
+# Se calcula la diferencia de las proporciones
+diferencia_proporciones <- proporcion_r14 - proporcion_r12b
+set.seed(234)
+# Se toma una muestra de 125 de datos_tarapaca
+muestra <- sample_n(datos_tarapaca, 125)
+
+# Se pasan a arreglos cada columna de la muestra
+r14 <- as.array(muestra$r14)
+r12b <- as.array(muestra$r12b)
+
+# Transformar a 1 los si y a 0 los no de la pregunta r14
+for (i in 1:length(r14)) {
+  if (r14[i] == "Sí") {
+    r14[i] <- 1
+  } else {
+    r14[i] <- 0
+  }
+}
+
+# Transformar a 1 los Profesional (carrera de 4 ó más años) y a 0 los Nunca asistió de la pregunta r12b
+for (i in 1:length(r12b)) {
+  if (r12b[i] == "Profesional (carrera de 4 ó más años)") {
+    r12b[i] <- 1
+  } else {
+    r12b[i] <- 0
+  }
+}
+r14 <- as.numeric(r14)
+r12b <- as.numeric(r12b)
+
+combinacion <- c(r14, r12b)
+largor14 <- length(r14)
+largo_combinacion <- length(combinacion)
+permutacion <- sample(combinacion, largo_combinacion, replace = FALSE)
+nuevo_r14 <- permutacion[1:largor14]
+nuevo_r12b <- permutacion[(largor14 + 1):largo_combinacion]
+
+# Se calcula la proporcion de los que respondieron Sí en la pregunta r14
+proporcion_nuevo_r14 <- sum(nuevo_r14) / largor14
+# Se calcula la proporcion de los que respondieron Profesional (carrera de 4 ó más años) en la pregunta r12b
+proporcion_nuevo_r12b <- sum(nuevo_r12b) / largor14
+
+# Se calcula la diferencia de las proporciones
+diferencia_proporciones_nuevo <- proporcion_nuevo_r14 - proporcion_nuevo_r12b
+
+# Se agregan los datos a un vector
+diferencia_proporciones_vector <- c(diferencia_proporciones_nuevo)
+
+# Se repite el proceso 10000 veces
+for (i in 1:10000) {
+  combinacion <- c(r14, r12b)
+  largor14 <- length(r14)
+  largo_combinacion <- length(combinacion)
+  permutacion <- sample(combinacion, largo_combinacion, replace = FALSE)
+  nuevo_r14 <- permutacion[1:largor14]
+  nuevo_r12b <- permutacion[(largor14 + 1):largo_combinacion]
+  
+  # Se calcula la proporcion de los que respondieron Sí en la pregunta r14
+  proporcion_nuevo_r14 <- sum(nuevo_r14) / largor14
+  # Se calcula la proporcion de los que respondieron Profesional (carrera de 4 ó más años) en la pregunta r12b
+  proporcion_nuevo_r12b <- sum(nuevo_r12b) / largor14
+  
+  # Se calcula la diferencia de las proporciones
+  diferencia_proporciones_nuevo <- proporcion_nuevo_r14 - proporcion_nuevo_r12b
+  # Se guarda la diferencia de las proporciones en un vector
+  diferencia_proporciones_vector[i] <- diferencia_proporciones_nuevo
+}
+
+hist(diferencia_proporciones_vector, main = "Histograma de la diferencia de las proporciones", xlab = "Diferencia de las proporciones", ylab = "Frecuencia", col = "blue")
+
+# Se calcula el p-value
+p_value <- sum(diferencia_proporciones_vector >= diferencia_proporciones) / 10000
+p_value
+```

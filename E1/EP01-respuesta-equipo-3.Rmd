@@ -1,0 +1,130 @@
+---
+title: "Ejercicio Práctico 1"
+author: "Branco García Santana"
+date: "2023-08-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Ejercicio Práctico 1:
+
+## Integrantes: Benjamin Canales, Branco García, Vicente Mieres
+
+## Número de equipo: 3
+
+## Pregunta: ¿Tienen hombres y mujeres ingresos similares en la RM?
+
+## Para responder la pregunta desarrollaremos los siguientes pasos:
+
+## - Paso 1: Carga del archivo csv
+
+```{r}
+# Librerias: 
+library(dplyr)
+library(ggpubr)
+# Cargo el conjunto de datos recopilados por la encuesta Casen 2017 en la Región Metropolitana
+ruta_app <- getwd()
+
+# Construyo la ruta completa al archivo CSV
+ruta_archivo <- paste(ruta_app, "EP01 Datos Casen 2017.csv", sep = "/")
+
+# Cargar el archivo CSV
+datos <- read.csv2(ruta_archivo)
+
+# Mostrar la tabla de datos (dataframe), como es muy grande mostraremos los primeros 50
+primeros_50 <- head(datos, 50)
+primeros_50
+```
+
+
+## Paso 2: Identificar variables relevantes para la pregunta asignada
+
+En este caso tenemos que considerar dos variables:
+
+- La variable de "sexo", en la cual hay que separar los datos de hombres con los de mujeres. Esta variable es cualitativa tipo nominal
+
+- La variable "región", en la cual hay que considerar solo los datos asociados a la región metropolitana (todos los datos de este conjunto pertenecían a la región Metropolitana). Esta variable es cualitativa tipo nominal
+
+
+## Paso 3: Selección de una medida estadística para responder la pregunta
+
+Para ver si hombres y mujeres tienen ingresos similares en la RM se decidió analizar la medida estadística de la media, para comparar el ingreso total medio de cada grupo, ya que otras medidas como la moda y mediana entregarían el ingreso total más usual por grupo y el valor central del conjunto de datos respectivamente.
+
+```{r}
+library ("dplyr")
+
+hombre <- datos%>%filter(sexo == "Hombre")
+
+mujer <- datos%>%filter(sexo == "Mujer")
+
+mediaHombre <- mean ( hombre [["ytot"]], na.rm = TRUE )
+mediaMujer <- mean ( mujer [["ytot"]], na.rm = TRUE )
+
+diferencia <- mediaHombre - mediaMujer
+
+cat(paste("El ingreso total medio del hombre de la RM es:", mediaHombre))
+cat("\n")
+cat(paste("El ingreso total medio de la mujer de la RM es:", mediaMujer))
+cat("\n")
+cat(paste("La diferencia entre medias es de:", diferencia))
+```
+
+## Paso 4: Construcción de gráfico para la variable de interés (Media)
+
+Se hicieron 2 gráficos por sexo, uno con todos los datos filtrados, y otro con una muestra de 100 datos. En el primero no se puede visualizar bien la media por la dispersión y cantidad de datos, es por ello que se realizó el otro gráfico con una muestra y así observar la media para poder ayudar a la respuesta de la pregunta 
+
+- Gráfico con todos los datos filtrados:
+
+```{r}
+g <- ggboxplot(hombre[["ytot"]], color = "red", fill = "pink", ylab = "Ingresos Hombre")
+
+g <- g + rremove("x.ticks")
+g <- g + rremove("x.text")
+g <- g + rremove("x.title")
+
+
+g2 <- ggboxplot(mujer[["ytot"]], color = "blue", fill = "pink", ylab = "Ingresos Mujer")
+
+g2 <- g2 + rremove("x.ticks")
+g2 <- g2 + rremove("x.text")
+g2 <- g2 + rremove("x.title")
+
+print(g)
+print(g2)
+```
+
+
+- Gráfico con muestras de 100 datos:
+
+```{r}
+muestraH <- hombre %>% sample_n(100)
+muestraM <- mujer %>% sample_n(100)
+
+g <- ggboxplot(muestraH[["ytot"]], color = "red", fill = "pink", ylab = "Ingresos Hombre")
+
+g <- g + rremove("x.ticks")
+g <- g + rremove("x.text")
+g <- g + rremove("x.title")
+
+
+g2 <- ggboxplot(muestraM[["ytot"]], color = "blue", fill = "pink", ylab = "Ingresos Mujer")
+
+g2 <- g2 + rremove("x.ticks")
+g2 <- g2 + rremove("x.text")
+g2 <- g2 + rremove("x.title")
+
+print(g)
+print(g2)
+```
+
+## Paso 5: Respuesta a la pregunta
+
+¿Tienen hombres y mujeres ingresos similares en la RM?
+
+Respuesta: No, el ingreso total medio de los hombres en la RM es de 754535.52 aproximadamente, mientras que la de las mujeres es de 482584.59, diferiendo en 271950.93 unidades aproximadamente, concluyendo que hombres y mujeres tienen ingresos diferentes, y en promedio las mujeres ganan menos que los hombres
+
+Además, esta diferencia se puede visualizar en los gráficos
+

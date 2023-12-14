@@ -1,0 +1,202 @@
+---
+title: "E6"
+output: html_document
+date: "2023-10-10"
+---
+
+Enunciado: Un equipo de investigadores del área de interacción humano-información está estudiando si el área temática y el nivel de dificultad del problema de información influyen en el tiempo (en segundos) que toma un usuario en formular una consulta de búsqueda para resolver dicho problema. Para ello, han reclutado a un grupo de participantes voluntarios, asignados aleatoriamente a distintos grupos. Cada participante debe resolver tres problemas de información con diferentes niveles de dificultad: baja, media y alta. A su vez, cada grupo debe resolver problemas relacionados a una temática diferente. Los datos recolectados contemplan las siguientes variables:
+
+En este momento, los investigadores buscan determinar si existen diferencias en el tiempo que tardan los usuarios en formular consultas para problemas con diferente nivel de dificultad en el área de leyes.
+
+Es por esto que podemos plantear las siguiente hipótesis.
+
+$$
+H_{0}: \text{El tiempo promedio que tardan los usuarios que estudian leyes en distintas dificultades de problemas es igual}
+$$
+
+$$
+H_{a}: \text{El tiempo promedio que tardan los usuarios que estudian leyes es distinto para al menos una dificultad}
+$$
+
+Primero se hace un acercamiento a los datos y se exportan las librerias que se usarán:
+
+```{r}
+
+
+library(conflicted)
+conflict_prefer("filter", "dplyr")
+
+library(tidyverse)
+library(ggpubr)
+library(dplyr)
+library(ez)
+
+datos <- read.csv2("D:/User/8vo Semestre/E. Inferencial/E6/EP05 Datos.csv"
+                   , sep = ",")
+
+```
+
+De los datos se filtra para obtener los datos de interes
+
+```{r}
+
+leyes <- datos %>% filter(area == "Leyes")
+economia <- datos %>% filter(area == "Economía")
+quimica <- datos %>% filter(area == "Química")
+arquitecura <- datos %>% filter(area == "Arquitectura")
+musica <- datos %>% filter(area == "Música")
+psicologia <- datos %>% filter(area == "Psicología")
+fisica <- datos %>% filter(area == "Física")
+matematicas <- datos %>% filter(area == "Matemáticas")
+computacion <- datos %>% filter(area == "Computación")
+literatura <- datos %>% filter(area == "Literatura")
+biologia <- datos %>% filter(area == "Biología")
+
+```
+
+```{r}
+# Se filtran los datos de leyes según su dificultad
+leyes_baja <- leyes %>% filter(dificultad == "Baja")
+leyes_media <- leyes %>% filter(dificultad == "Media")
+leyes_alta <- leyes %>% filter(dificultad == "Alta")
+```
+
+Se procede con los graficos de barra para cada una de las dificultades en y ver de que manera se comporta la frecuencia con que aparecen estos datos
+
+```{r}
+g <- ggplot(leyes_baja, aes(x = tiempo))
+g <- g + geom_bar()
+g <- g + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+g <- g + labs(x = "Tiempo", y = "Frecuencia")
+g <- g + title("")
+print(g)
+```
+
+```{r}
+g <- ggplot(leyes_media, aes(x = tiempo))
+g <- g + geom_bar()
+g <- g + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+g <- g + labs(x = "Area", y = "Frecuencia")
+print(g)
+```
+
+```{r}
+g <- ggplot(leyes_alta, aes(x = tiempo))
+g <- g + geom_bar()
+g <- g + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+g <- g + labs(x = "Area", y = "Frecuencia")
+print(g)
+```
+
+```{r}
+# Se comprueba normalidad de los datos
+shapiro.test(leyes_baja$tiempo)
+shapiro.test(leyes_media$tiempo)
+shapiro.test(leyes_alta$tiempo)
+```
+
+Vienen de una dist normal con un 95% de confianza.
+
+```{r}
+mean(leyes_baja$tiempo)
+mean(leyes_media$tiempo)
+mean(leyes_alta$tiempo)
+```
+
+```{r}
+```
+
+```{r}
+# Se muestran los distintos tipos de area que hay en el estudio.
+area <- datos %>% pull(area) %>% unique()
+area
+```
+
+```{r}
+# Se muestra el grafico de barras de cada area
+g <- ggplot(leyes, aes(x = tiempo))
+g <- g + geom_bar()
+g <- g + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+g <- g + labs(x = "Area", y = "Frecuencia")
+print(g)
+```
+
+```{r}
+# Se muestra el grafico de barras de cada area
+g <- ggplot(economia, aes(x = tiempo))
+g <- g + geom_bar()
+g <- g + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+g <- g + labs(x = "Area", y = "Frecuencia")
+print(g)
+```
+
+```{r}
+# Se muestra el grafico de barras de cada area
+g <- ggplot(quimica, aes(x = tiempo))
+g <- g + geom_bar()
+g <- g + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+g <- g + labs(x = "Area", y = "Frecuencia")
+print(g)
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+# Análisis de condiciones.
+
+# 1. La escala con que se mide la variable dependiente tiene las propiedades de
+# una escala de interavalos iguales.
+
+# Para comprobar esta condición utilizamos el gráfico de caja mostrado más
+# abajo.
+
+# 2. La k muestras son aleatorias e independientes desde la población de origen.
+
+# Dado que los vaoluntarios se asignaron aleatoriamente a distintos grupos
+# y las areas son distintas entre si, se comprueba esta condición.
+
+# 3. Se puede suponer que estas provienen de una distribución normal.
+
+#  Comprobción de normalidad .
+g <- ggqqplot(datos, x = "tiempo",
+              y = " area ")
+g <- g + facet_wrap(~ area)
+g <- g + rremove("x.ticks") + rremove("x.text")
+g <- g + rremove("y.ticks") + rremove("y.text")
+g <- g + rremove("axis.title")
+print(g)
+
+# 4. La matriz de varianza-covarianza es esférica.
+
+# Se comprueba al realiza la prueba EZ
+```
+
+```{r}
+
+# Desarrollo
+
+baja <- datos %>% filter(dificultad == "Baja" ) %>% pull(tiempo)
+media <- datos %>% filter(dificultad == "Media" ) %>% pull(tiempo)
+alta <- datos %>% filter(dificultad == "Alta" ) %>% pull(tiempo)
+
+instancia <- factor(1:200)
+
+
+data <- data.frame(instancia, baja, media, alta)
+data
+
+data <- data %>% pivot_longer(c("baja", "media", "alta"),
+                              names_to = "dificultad",
+                              values_to = "tiempo")
+
+data[["dificultad"]] <- factor(data[["dificultad"]])
+
+
+test <- ezANOVA(data = data, dv = tiempo, within = dificultad, wid = instancia, return_aov = TRUE)
+
+print(test)
+```
