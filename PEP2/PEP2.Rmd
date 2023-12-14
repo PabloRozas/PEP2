@@ -4,9 +4,191 @@ output: html_document
 date: "2023-12-14"
 ---
 
+# Pregunta 1
+
+Se agregan las librerías necesarias para el análisis de los datos
+
+```{r}
+set.seed(123)
+library(ggplot2)
+library(dplyr)
+library(caret)
+library(car)
+```
+
 Se leen el archivo de los datos
 
 ```{r}
-
+datos <- read.csv2("EI-2023-2-PE2-Datos-Equipo11.csv", header = TRUE, sep = ",", fileEncoding = "utf8")
 ```
 
+La pregunta propuesta es: ¿Es posible predecir la variable X5 utilizando el resto de las variables medidas en el conjunto de los datos?
+
+Se puede notar que la naturaleza de la variable no es categórica y menos dicotómica, por lo tanto, como se debe hacer un modelo con múltiples variables, se utilizará la regresión lineal múltiple.
+
+```{r}
+# Se crea el modelo con todas las variables
+modelo <- lm(X5 ~ ., data = datos)
+print(summary(modelo))
+```
+
+Se puede notar que la mayoría tiene poca importancia y esto se puede deber a alguna existencia de multicolinealidad, por esto se utilizará el valor de inflación de la variancia con la función VIF de la librería car para utilizarlo como criterio de eliminación de predictores que podrían ser colineales a la variable predictora.
+
+```{r}
+print(vif(modelo))
+```
+
+Variables que podemos notar inmediatamente que se deben eliminar son X2 y X3, ya que, estas tiene un VIF demasiado alto, siendo 250.735913 y 247.250002 respectivamente.
+
+Se procede a eliminar estas variables predictoras
+
+```{r}
+modelo <- update(modelo, . ~ . - X2 - X3)
+print(summary(modelo))
+```
+
+Ahora en el resumen del modelo se puede notar que la variable que tiene mayor importancia es X4 para el modelo, las demás al no tener podría tener colinealidad con la variable dependiente X5.
+
+Ahora se vuelve a comprobar el VIF de las variables predictoras
+
+```{r}
+print(vif(modelo))
+```
+
+Se puede notar que en general todos los VIF de las variables predictoras mejoraron, pero aún se tienen tres variables que se considera que están por sobre el umbral definido en el enunciado (VIF \<= 3), pero también se indica que se debe detener cuando se eliminen 3 de las variables predictoras originales o todos los VIF sean menor o igual a 3, en este caso como ya se ha eliminado dos de las variables predictoras originales se procede con eliminar una más, siendo esta X7 que tiene el mayor VIF siendo un 4.263346.
+
+```{r}
+modelo <- update(modelo, . ~ . - X7)
+print(summary(modelo))
+```
+
+Se puede notar que sigue siendo X4 el que tiene mayor importancia para el modelo, dejando a todas las demás variables que no tienen mucha importancia con una sospecha de colinealidad.
+
+Se comprueba nuevamente el VIF
+
+```{r}
+print(vif(modelo))
+```
+
+Ahora se puede notar que se dieron ambos casos a la vez, se eliminaron 3 variables y todos tienen un VIF menor que 3.
+
+Lo siguiente a evaluar es que tan confiable es este modelo, para esto se deben evaluar las condiciones
+
+```{r}
+plot(modelo)
+```
+
+Al ver los gráficos de los residuos del modelo se puede notar que en la condición de normalidad, viendo el gráfico Q-Q, estos parecieran seguir una normalidad, pero se pueden notar valores atípicos que están afectando al modelo, esto tiene bastante sentido con el resultado del \$R\^{2}\$ del último modelo presentado el cual tiene un valor de 0.3434 esto indica que el modelo explica el 34.34% de la variabilidad en la variable dependiente.
+
+También se puede ver que existen valores atípicos en el gráfico de dispersión de los residuos y que estos no se ven totalmente de una manera aleatoria.
+
+Para esto se aplicará la estrategia de la distancia de Cook para detectarlos, estos datos se obtienen del modelo con el which = 4 el cual devuelve las distancias de Cook.
+
+```{r}
+plot(modelo, which=4, main="Distancia de Cook")
+```
+
+Se pueden ver que los valores atípicos detectados son 5, 11 y 27, por lo cual se deben eliminar bajo este criterio. Además, como se vio anteriormente en el gráfico de dispersión de los residuos, también se consideran valores atípicos 20 y 24, por lo tanto, estos se eliminan bajo este criterio.
+
+```{r}
+datos <- datos[-c(5,11,20,24,27),]
+```
+
+Se vuelve a realizar el modelo de RLM con las variables predictoras X1, X4, X6, X8 y X9
+
+```{r}
+modelo <- lm(X5 ~ X1 + X4 + X6 + X8 + X9, data = datos)
+print(summary(modelo))
+plot(modelo)
+```
+
+```{r}
+print(vif(modelo))
+```
+
+Se ven las gráficas de las variables predictoras contra la variable dependiente
+
+```{r}
+plot(datos$X1, datos$X5, main = "X1 vs X5")
+plot(datos$X4, datos$X5, main = "X4 vs X5")
+plot(datos$X6, datos$X5, main = "X6 vs X5")
+plot(datos$X8, datos$X5, main = "X8 vs X5")
+plot(datos$X9, datos$X5, main = "X9 vs X5")
+```
+
+Como conclusiones de lo hecho, se puede notar que no se sigue fielmente la homoscedasticidad, además se siguen encontrando valores atípicos y no se puede seguir eliminando hasta quedarse sin datos, se puede notar por el VIF que no hay colinealidad, pero también se puede ver por la correlación cuadrada \$R\^{2}\$ que el modelo no sigue una regresión lineal, ya que este está muy lejano al 1, siendo de 0.4192. Por lo tanto, el modelo no se considera confiable, aunque se puede comprobar la calidad de las predicciones usando el método de LOOCV y comprobando el RMSE promedio, que es lo que se pide en el enunciado.
+
+# Pregunta 2
+
+Primero vamos a analizar los datos obtenidos, para analizar si es pertinente utilizar una prueba paramétrica.
+
+```{r}
+library ( simpleboot )
+library ( boot )
+library ( ggpubr )
+
+# Hipótesis a contrastar: 
+#   H0: Los promedios nacionales de los presupuestos presentados por las variables x4 y x7 son iguales (H0: u4 - u7 = 0)
+#   HA: Los promedios nacionales de los presupuestos presentados por las variables x4 y x7 son diferentes (HA: u4 - u7 != 0)
+
+# Condiciones para aplicar una prueba de t student para 2 muestras independientes:
+#   Son dos muestras
+#   El tamaño de ambas muestras es mayor a 30 (lo cual es recomendado)
+#   Las muestras son independientes
+#   Las muestras presentan una distribución normal
+#   Las muestras presentan varianzas iguales
+
+# Su se cumplen estas condiciones se puede aplicar la prueba t de Student para muestras independientes
+
+# Vamos a obtener las muestras
+x4 = datos$X4
+x7 = datos$X7
+
+# Las muestras son independientes
+
+# El tamaño de ambas muestras son 50, es decir son mayores a 30
+
+# Ahora vamos a ver si las muestras presentan una distribución normal
+# Para esto vamos a realizar un gráfico de probabilidad normal en ambas muestras
+
+# Gráfico de probabilidad normal para la muestra x4
+qqnorm(x4)
+qqline(x4)
+
+# Gráfico de probabilidad normal para la muestra x7
+qqnorm(x7)
+qqline(x7)
+
+# Ahora vamos a verlo en histogramas
+hist(x4)
+hist(x7)
+
+# De todas formas vamos a aplicar un Shapiro-Wilk para ver si las muestras presentan una distribución normal
+shapiro.test(x4)
+shapiro.test(x7)
+```
+
+En el primer gráfico de normalidad es posible ver que las muestras no presentan una distribución normal, ya que hay varios puntos que se alejan de la línea recta, sumado a esto, en los histogramas es posible apreciar que las muestras están desviadas a la izquierda. Además, la prueba de shapiro-wilk indica p-values extremadamente bajos. Por lo tanto, existe evidencia que indica que los datos no presentan una distribución normal, por lo que no se puede aplicar la prueba t de Student para 2 muestras independientes. Por lo tanto, se debe aplicar una prueba no paramétrica.
+
+Ahora vamos a realizar un análisis inferencial, con 95% de confianza, explicando y justificando paso a paso el procedimiento seguido, utilizando remuestreo con bootsrapping con 300 repeticiones.
+
+```{r}
+# Establezco el nivel de significancia y el número de repeticiones
+alfa = 0.05
+n = 300
+
+# Primero vamos a calcular la diferencia de medias muestrales(estadístico en este caso) de las muestras originales.
+diferencia_medias_muestrales_original = mean(x4) - mean(x7)
+
+# Ahora vamos a realizar el remuestreo
+distribucion_bootstrap =  two.boot(x4, x7, FUN = mean, R = n)
+
+# Ahora gráfico la distribución de bootstrap
+hist(distribucion_bootstrap$t, main = "Distribución de bootstrap", xlab = "Diferencia de medias muestrales", ylab = "Frecuencia")
+
+# Determino el p valor
+p_valor = sum(distribucion_bootstrap$t > diferencia_medias_muestrales_original) / n
+p_valor
+```
+
+Dado que el p valor dio 0.497, se rechaza la hipótesis alternativa a favor de la nula, es decir, no hay evidencia suficiente para indicar que los promedios nacionales de los presupuestos presentados por las variables x4 y x7 son diferentes.
